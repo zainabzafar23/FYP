@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 
+const AddressSchema = new mongoose.Schema({
+    addressLine: { type: String, required: true },
+    city: { type: String, required: true },
+    postalCode: { type: String, required: true },
+    // country: { type: String, required: true },
+    // lat: { type: Number }, // For Google Maps latitude
+    // lng: { type: Number }, // For Google Maps longitude
+  });
+
 const CartItemSchema = new mongoose.Schema({
     itemId: String,
     title: String,
@@ -24,6 +33,7 @@ const UserSchema= new mongoose.Schema({
         minlength: 6,
     },
     cart:[CartItemSchema],
+    addresses: [AddressSchema], 
 },{timestamps: true});
 
 const User= mongoose.models.User || mongoose.model('User', UserSchema);

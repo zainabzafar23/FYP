@@ -4,11 +4,13 @@ import axios from "axios";
 import { FaRegMinusSquare } from "react-icons/fa";
 import { FaRegPlusSquare } from "react-icons/fa";
 import DashNav from "@/components/DashNav";
-import { CartContext } from "../cartcontext";
+import { useCart } from "../cartcontext";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'
 
 const RestaurantMenu = () => {
   const [restaurant, setRestaurant] = useState(null);
-  const {addToCart, increment, decrement, cartItems}= useContext(CartContext);
+  const {addToCart, incrementItemQuantity, decrementItemQuantity, cart}= useCart();
   const [addedToCart, setAddedToCart] = useState({}); 
   const router = useRouter();
   const { id } = router.query;
@@ -22,25 +24,33 @@ const RestaurantMenu = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    const savedAddedToCart = JSON.parse(localStorage.getItem("addedToCart")) || {};
-    setAddedToCart(savedAddedToCart);
-  }, []);
+  // useEffect(() => {
+  //   const savedAddedToCart = JSON.parse(localStorage.getItem("addedToCart")) || {};
+  //   setAddedToCart(savedAddedToCart);
+  // }, []);
 
-  useEffect(() => {
-    localStorage.setItem("addedToCart", JSON.stringify(addedToCart));
-  }, [addedToCart]);
+  // useEffect(() => {
+  //   localStorage.setItem("addedToCart", JSON.stringify(addedToCart));
+  // }, [addedToCart]);
 
   const handleAddToCart = (itemId, title, price) => {
     addToCart(itemId, title, price);
     setAddedToCart((prev) => ({ ...prev, [itemId]: true }));
+
+    toast.success(`${title} added to cart successsfully`, {autoClose:1000});
   };
   
+  const getItemQuantity = (itemId) => {
+    const cartItem = cart.find((cartItem) => cartItem.id === itemId);
+    return cartItem ? cartItem.quantity : 1;
+  };
+
   if (!restaurant) return <p>Loading...</p>;
 
 
   return (
     <>
+    <ToastContainer/>
       <DashNav/>
       <div className="p-14 justify-center">
         <div className="flex mb-8 mt-12">
@@ -79,28 +89,42 @@ const RestaurantMenu = () => {
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center">
-                    <button 
-                    onClick={() => decrement(item._id)}
+                    
+                    {cart ? (
+                      <>
+                      <button 
+                    onClick={() => decrementItemQuantity(item._id)}
+                    disabled={getItemQuantity(item._id) <= 1}
+                    // disabled={cart.quantity <= 1}
+                    // disabled={!cart[item._id]?.quantity || cart[item._id]?.quantity <= 1
+                    
                     >
                       <FaRegMinusSquare />
                     </button>
 
                     <span className="px-4">
-                    {cartItems[item._id]?.quantity || 0}
+                    {getItemQuantity(item._id)}
+                    {/* {cart.quantity} */}
+                    {/* {cart[item._id]?.quantity || 1} */}
                     </span>
 
                     <button 
-                    onClick={() => increment(item._id)}
+                    onClick={() => incrementItemQuantity(item._id)}
                     >
                       <FaRegPlusSquare />
                     </button>
+                    </>
+                    ):(
+                      <span className="px-4">1</span> 
+                    )}
                   </div>
 
                   <button
                     className="bg-purple-800 text-white rounded px-4 py-2"
                     onClick={() => handleAddToCart(item._id, item.title, item.price)}
                   >
-                    {addedToCart[item._id] ? "Added to Cart" : "Add to Cart"}
+                    Add to Cart
+                    {/* {addedToCart[item._id] ? "Added to Cart" : "Add to Cart"} */}
                   </button>
                 </div>
               </div>

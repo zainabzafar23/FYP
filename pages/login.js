@@ -2,12 +2,41 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import axios from 'axios'
+import { useCart } from "./cartcontext";
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  const {cart, setCart}= useCart();
+
+  const syncCartToServer = async (userId, cart) => {
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, cart })
+      });
+      if (!res.ok) throw new Error('Failed to sync cart');
+    } catch (error) {
+      console.error('Cart Sync Error:', error);
+    }
+  };
+
+  const loadCartFromServer = async (userId) => {
+    try {
+      const res = await fetch(`/api/cart?userId=${userId}`);
+      if (!res.ok) throw new Error('Failed to load cart');
+      const data = await res.json();
+      return data.cart;
+    } catch (error) {
+      console.error('Cart Load Error:', error);
+      return [];
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,13 +47,30 @@ const Login = () => {
         email,
         password,
       });
-      const {token}= res.data;
+      const {token, userId}= res.data;
 
       localStorage.setItem('token', token);
-      router.push('/dashboard');
+      localStorage.setItem('userId', userId);
+
+      await syncCartToServer(userId, cart);
+
+      if (!userId) {
+        console.error('User ID not returned from login API');
+        return setError("Login failed, please check credentials");
+    }
+
+      const serverCart = await loadCartFromServer(userId);
+      setCart(serverCart); 
+
+      toast.success("Login successful! Redirecting to dashboard...");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
       
     } catch (err) {
+      console.error(err); 
       setError("login failed, please check credentials");
+      toast.error("Login failed, please check credentials.");
     }
   };
 
@@ -119,6 +165,7 @@ const Login = () => {
             </Link>
           </p>
         </div>
+        <ToastContainer/>
       </div>
     </div>
   );

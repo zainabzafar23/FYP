@@ -1,107 +1,77 @@
-import { createContext, useState, useEffect } from "react";
-import axios from "axios";
-import { useSession } from "next-auth/react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-export const CartContext = createContext();
+const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [badgeCount, setBadgeCount] = useState(0);
-  const { data: session } = useSession();
+  const [cart, setCart] = useState([]);
 
   useEffect(() => {
-    const fetchCart = async () => {
-      if (session) {
-        try {
-          const { data } = await axios.get("/api/cart");
-          setCartItems(data.cart);
-          setBadgeCount(
-            data.cart.reduce((count, item) => count + item.quantity, 0)
-          );
-        } catch (error) {
-          console.error("Error fetching cart:", error);
-        }
-      }
-    };
-
-    fetchCart();
-  }, [session]);
-
-  useEffect(() => {
-    if (!session) {
-      localStorage.setItem('cart', JSON.stringify(cartItems));
+    const storedCart = JSON.parse(localStorage.getItem("cart"));
+    if (storedCart) {
+      setCart(storedCart);
     }
-  }, [cartItems, session]);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  const addToCart = (id, title,price) => {
+    const existingItemIndex = cart.findIndex(
+      (cartItem) => cartItem.id === id
+    );
+    if (existingItemIndex >= 0) {
+      const updatedCart = [...cart];
+      updatedCart[existingItemIndex].quantity += 1;
+      setCart(updatedCart);
+    } else {
+      setCart([...cart, {id, title, price, quantity: 1 }]);
+    }
+  };
+
+  const incrementItemQuantity = (id) => {
+    setCart((prevCart) => {
+      const updatedCart = [...prevCart];
+      const itemIndex = updatedCart.findIndex(item => item.id === id);
   
-  useEffect(() => {
-    if (session) {
-      localStorage.removeItem("cart"); 
-    }
-  }, [session]);
-
- 
-  const syncCartWithDB = async (updatedCart) => {
-    try {
-      await axios.post("/api/cart", { cart: updatedCart });
-    } catch (error) {
-      console.error("Error updating cart:", error);
-    }
+      if (itemIndex >= 0) {
+        updatedCart[itemIndex].quantity += 1; // Increase quantity
+      }
+      
+      return updatedCart;
+    });
   };
 
-  const addToCart = (id, title, price) => {
-    const updatedCart = cartItems.map((item) =>
-      item.itemId === id ? { ...item, quantity: item.quantity + 1 } : item
-    );
-
-    const newItem = updatedCart.find((item) => item.itemId === id);
-    if (!newItem) {
-      updatedCart.push({ itemId: id, title, price, quantity: 1 });
-    }
-
-    setCartItems(updatedCart);
-    setBadgeCount((prevCount) => prevCount + 1);
-    syncCartWithDB(updatedCart);
+  const decrementItemQuantity = (id) => {
+    setCart((prevCart) => {
+      const updatedCart = [...prevCart];
+      const itemIndex = updatedCart.findIndex(item => item.id === id);
+  
+      if (itemIndex >= 0 && updatedCart[itemIndex].quantity > 1) {
+        updatedCart[itemIndex].quantity -= 1; // Decrease quantity
+      }
+  
+      return updatedCart;
+    });
   };
 
-  const increment = (id) => {
-    const updatedCart = cartItems.map((item) =>
-      item.itemId === id ? { ...item, quantity: item.quantity + 1 } : item
-    );
-    setCartItems(updatedCart);
-    setBadgeCount((prevCount) => prevCount + 1);
-    syncCartWithDB(updatedCart);
+  // Remove item from cart
+  const removeFromCart = (id) => {
+    setCart(cart.filter((item) => item.id !== id));
   };
 
-  const decrement = (id) => {
-    const updatedCart = cartItems.map((item) =>
-      item.itemId === id && item.quantity > 1
-        ? { ...item, quantity: item.quantity - 1 }
-        : item
-    );
-    setCartItems(updatedCart);
-    setBadgeCount((prevCount) => prevCount - 1);
-    syncCartWithDB(updatedCart);
-  };
-
-  const deleteItem = (id) => {
-    const updatedCart = cartItems.filter((item) => item.itemId !== id);
-    setCartItems(updatedCart);
-    setBadgeCount((prevCount) => prevCount - 1);
-    syncCartWithDB(updatedCart);
+  // Clear cart
+  const clearCart = () => {
+    setCart([]);
   };
 
   return (
     <CartContext.Provider
-      value={{
-        cartItems,
-        badgeCount,
-        addToCart,
-        increment,
-        decrement,
-        deleteItem,
-      }}
+      value={{ cart, setCart, addToCart, incrementItemQuantity, decrementItemQuantity,removeFromCart, clearCart }}
     >
       {children}
     </CartContext.Provider>
   );
 };
+
+export const useCart = () => useContext(CartContext);

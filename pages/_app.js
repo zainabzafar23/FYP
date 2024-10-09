@@ -1,11 +1,9 @@
 import Footer from "@/components/Footer";
 import { CartProvider } from "./cartcontext";
 import "@/styles/globals.css";
-import { SessionProvider } from "next-auth/react";
 
-export default function App({ Component, pageProps:{session, ...pageProps} }) {
+export default function App({ Component, pageProps }) {
   return (
-    <SessionProvider session={session}>
       <CartProvider>
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow">
@@ -14,7 +12,6 @@ export default function App({ Component, pageProps:{session, ...pageProps} }) {
       <Footer />
     </div>
     </CartProvider>
-    </SessionProvider>
   
   );
 }

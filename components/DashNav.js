@@ -5,26 +5,42 @@ import { FaUser } from "react-icons/fa";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaTimes } from "react-icons/fa";
 import { useRouter } from "next/router";
-import { CartContext } from "@/pages/cartcontext";
+import { useCart } from "@/pages/cartcontext";
 import Cart from "./Cart";
 
-const DashNav = ({ search, setSearch }) => {
-  const { cartItems, badgeCount } = useContext(CartContext);
+const DashNav = ({ search, setSearch, isCheckout }) => {
+  const { cart , setCart} = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [user, setUser] = useState(null);
   const router = useRouter();
 
-  const handleLogout = () => {
+  const saveCartToServer = async (userId, cart) => {
+    await fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, cart: cart })
+    });
+  };
+
+  const handleLogout = async() => {
+    const userId = user?.id;  
+    if (userId) {
+      await saveCartToServer(userId, cart);
+    }
+
     localStorage.removeItem("token");
     setIsLoggedIn(false);
     setUser(null);
+
+    // setCart({});  
     router.push("/login");
   };
 
+
   const getCartItemCount = () => {
-    return Object.keys(cartItems).length;
+    return Object.keys(cart).length;
   };
 
   return (
@@ -35,6 +51,8 @@ const DashNav = ({ search, setSearch }) => {
         </Link>
 
         <div className="flex md:order-2 space-x-3 md:space-x-1 rtl:space-x-reverse">
+          {!isCheckout && (
+            <>
           <form className="flex items-center max-w-sm mx-auto">
             <label htmlFor="simple-search" className="sr-only">
               Search
@@ -90,22 +108,12 @@ const DashNav = ({ search, setSearch }) => {
             </button>
           </form>
 
-          <FaUser
-            className=" pl-2 mt-1 w-8 h-8 text-purple-800 cursor-pointer"
-            onClick={() => setIsMenuOpen(true)}
-          />
-
           <div className="relative">
             <FaCartShopping
               className="pl-1 mt-1 w-8 h-8 text-purple-800 cursor-pointer"
               onClick={() => setIsCartOpen(!isCartOpen)}
             />
 
-            {/* {badgeCount > 0 && (
-              <span className="absolute top-0 right-0 bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
-                {badgeCount}
-              </span>
-            )} */}
             {getCartItemCount() > 0 && (
               <span className="absolute top-0 right-0 bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
                 {getCartItemCount()}
@@ -130,6 +138,22 @@ const DashNav = ({ search, setSearch }) => {
               </div>
             </div>
           )}
+          </>
+          )}
+
+          {isCheckout && (
+            <button
+            className="p-2.5 text-sm font-medium text-purple-800 bg-gray-100 rounded-lg border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:outline-none"
+            onClick={() => router.push("/dashboard")}
+          >
+            Continue Browsing
+          </button>
+        )}
+
+<FaUser
+            className="pl-2 mt-1 w-8 h-8 text-purple-800 cursor-pointer"
+            onClick={() => setIsMenuOpen(true)}
+          />
 
           {isMenuOpen && (
             <div

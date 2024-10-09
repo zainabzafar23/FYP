@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    
     // Find the user by their ID from the token
     const user = await User.findById(decoded.userId).select('-password'); // Exclude password
     if (!user) {

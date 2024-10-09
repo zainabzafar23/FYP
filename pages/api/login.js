@@ -21,11 +21,11 @@ export default async function handler(req, res) {
 
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET, // This should be stored in your .env.local file
+      process.env.JWT_SECRET, 
       { expiresIn: '1h' }
     );
 
-    res.status(200).json({ token });
+    res.status(200).json({ token, userId: user._id });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
